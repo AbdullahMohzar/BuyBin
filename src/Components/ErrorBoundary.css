@@ -1,0 +1,174 @@
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.error-container {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.error-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.error-container h1 {
+  color: #1a1a1a;
+  font-size: 1.75rem;
+  margin: 0 0 16px 0;
+  font-weight: 700;
+}
+
+.error-message {
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+}
+
+.error-details {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.error-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 12px;
+}
+
+.error-details pre {
+  background: #1a1a1a;
+  color: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin: 8px 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.retry-btn,
+.home-btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.retry-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.retry-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.home-btn {
+  background: #f8f9fa;
+  color: #495057;
+  border: 2px solid #e9ecef;
+}
+
+.home-btn:hover {
+  background: #e9ecef;
+  transform: translateY(-2px);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .error-container {
+    background: #1a1a1a;
+  }
+  
+  .error-container h1 {
+    color: #f8f9fa;
+  }
+  
+  .error-message {
+    color: #adb5bd;
+  }
+  
+  .error-details {
+    background: #2d2d2d;
+    border-color: #3d3d3d;
+  }
+  
+  .error-details summary {
+    color: #e9ecef;
+  }
+  
+  .home-btn {
+    background: #2d2d2d;
+    color: #e9ecef;
+    border-color: #3d3d3d;
+  }
+  
+  .home-btn:hover {
+    background: #3d3d3d;
+  }
+}
+
+@media (max-width: 480px) {
+  .error-container {
+    padding: 24px;
+  }
+  
+  .error-icon {
+    font-size: 3rem;
+  }
+  
+  .error-container h1 {
+    font-size: 1.5rem;
+  }
+  
+  .error-actions {
+    flex-direction: column;
+  }
+  
+  .retry-btn,
+  .home-btn {
+    width: 100%;
+  }
+}

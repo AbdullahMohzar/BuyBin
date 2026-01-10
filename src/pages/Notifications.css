@@ -1,0 +1,17 @@
+/* ==================== NOTIFICATIONS PAGE ==================== */
+.notifications-page {
+  min-height: 100vh;
+  background: var(--bg-color, #f8fafc);
+}
+
+.notifications-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+@media (max-width: 640px) {
+  .notifications-container {
+    padding: 1rem;
+  }
+}

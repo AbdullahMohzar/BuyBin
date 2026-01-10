@@ -1,0 +1,286 @@
+/* Importing a modern font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+/* Scoped styles for the register page */
+.login-page {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #1e3a8a, #6b21a8, #db2777);
+  background-size: 200% 200%;
+  animation: gradientShift 15s ease infinite;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Animated gradient background */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Register container with glassmorphism */
+.login-page .login-container {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: fadeIn 0.8s ease-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Fade-in animation for the login container */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Title and subtitle */
+.login-page .login-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.login-page .login-subtitle {
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: #e2e8f0;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+/* Form styling */
+.login-page .login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Input group with floating label effect */
+.login-page .input-group {
+  position: relative;
+  width: 100%;
+}
+
+.login-page .login-input {
+  width: 90%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #ffffff;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.login-page .login-input:focus {
+  border-color: #40ffaa;
+  box-shadow: 0 0 8px rgba(64, 255, 170, 0.5);
+}
+
+.login-page .login-input:focus + .input-label,
+.login-page .login-input:not(:placeholder-shown) + .input-label {
+  top: -0.5rem;
+  font-size: 0.75rem;
+  color: #40ffaa;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0 0.25rem;
+}
+
+.login-page .input-label {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  background: transparent;
+  padding: 0 0.25rem;
+}
+
+/* Error container styling */
+.login-page .error-container {
+  width: 280px;
+  background: rgba(255, 75, 75, 0.15);
+  border: 1px solid #ff4d4f;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Slide-in animation for error container */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-page .error-message {
+  color: #ff4d4f;
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+  list-style: disc;
+  margin-left: 1.5rem;
+}
+
+.login-page .error-message:last-child {
+  margin-bottom: 0;
+}
+
+/* Sign-up button */
+.login-page .signin-btn {
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #40ffaa, #4079ff);
+  background-size: 200% 100%;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.login-page .signin-btn:hover {
+  background-position: 100% 0;
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(64, 255, 170, 0.4);
+}
+
+.login-page .signin-btn:active {
+  transform: scale(0.95);
+}
+
+/* Google Sign-Up button */
+.login-page .google-signin-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.login-page .google-signin-btn {
+  width: 280px;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #4285f4, #34a853);
+  background-size: 200% 100%;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.login-page .google-signin-btn:hover {
+  background-position: 100% 0;
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
+}
+
+.login-page .google-signin-btn:active {
+  transform: scale(0.95);
+}
+
+.login-page .google-signin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-page .google-icon {
+  background: url('https://developers.google.com/identity/images/g-logo.png') no-repeat center;
+  background-size: contain;
+  width: 24px;
+  height: 24px;
+  position: absolute;
+  left: 0.75rem;
+}
+
+/* Signin link */
+.login-page .signup-link {
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  text-align: center;
+}
+
+.login-page .signup-link a {
+  color: #40ffaa;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-page .signup-link a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .login-page .login-container {
+    padding: 1.5rem;
+    max-width: 90%;
+  }
+
+  .login-page .login-title {
+    font-size: 1.5rem;
+  }
+
+  .login-page .login-subtitle {
+    font-size: 1rem;
+  }
+
+  .login-page .login-input,
+  .login-page .error-container,
+  .login-page .google-signin-btn {
+    width: 100%;
+  }
+
+  .login-page .input-label {
+    font-size: 0.875rem;
+  }
+
+  .login-page .signin-btn {
+    padding: 0.5rem;
+  }
+}
