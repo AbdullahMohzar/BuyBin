@@ -74,11 +74,26 @@ service cloud.firestore {
     
     // ==================== REVIEWS COLLECTION ====================
     match /reviews/{reviewId} {
+      // Anyone can read reviews (for product pages)
       allow read: if true;
+      
+      // Only authenticated users can create reviews with their own userId
       allow create: if isAuthenticated() 
-                    && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() 
-                            && resource.data.userId == request.auth.uid;
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.productId is string
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5;
+      
+      // Users can only update/delete their own reviews
+      allow update: if isAuthenticated() 
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.productId == resource.data.productId
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5;
+                    
+      allow delete: if isAuthenticated() 
+                    && resource.data.userId == request.auth.uid;
     }
     
     // ==================== FLASH SALES COLLECTION ====================
@@ -95,10 +110,10 @@ service cloud.firestore {
     }
     
     // ==================== NOTIFICATIONS COLLECTION ====================
-    // Flat collection structure with userId field
+    // Global notifications feed
     match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated();
+      allow update, delete: if isAuthenticated();
       allow create: if false; // Only server can create notifications
     }
     

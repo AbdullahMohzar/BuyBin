@@ -13,6 +13,7 @@ export function CartProvider({ children }) {
   const [shippingCost, setShippingCost] = useState(5.0);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [firebaseToken, setFirebaseToken] = useState(null);
 
   // Load cart from localStorage (for guests)
   const loadLocalCart = useCallback(() => {
@@ -40,7 +41,13 @@ export function CartProvider({ children }) {
   // Load cart from Redis (for logged-in users)
   const loadServerCart = useCallback(async (userId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cart/${userId}`);
+      if (!firebaseToken) return [];
+
+      const response = await fetch(`${API_BASE_URL}/api/cart/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${firebaseToken}`,
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         return data.cartItems || [];
@@ -49,20 +56,25 @@ export function CartProvider({ children }) {
       console.error('Error loading server cart:', error);
     }
     return [];
-  }, []);
+  }, [firebaseToken]);
 
   // Save cart to Redis
   const saveServerCart = useCallback(async (userId, items) => {
     try {
+      if (!firebaseToken) return;
+
       await fetch(`${API_BASE_URL}/api/cart/save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${firebaseToken}`,
+        },
         body: JSON.stringify({ userId, cartItems: items }),
       });
     } catch (error) {
       console.error('Error saving server cart:', error);
     }
-  }, []);
+  }, [firebaseToken]);
 
   // Merge local cart with server cart on login
   const mergeCarts = useCallback((localCart, serverCart) => {
@@ -90,6 +102,13 @@ export function CartProvider({ children }) {
       if (user) {
         // User logged in
         setCurrentUserId(user.uid);
+        try {
+          const token = await user.getIdToken();
+          setFirebaseToken(token);
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+          setFirebaseToken(null);
+        }
         
         // Load local and server carts
         const localCart = loadLocalCart();
@@ -111,6 +130,7 @@ export function CartProvider({ children }) {
       } else {
         // User logged out - load from localStorage
         setCurrentUserId(null);
+        setFirebaseToken(null);
         const localCart = loadLocalCart();
         setCartItems(localCart);
       }
@@ -173,7 +193,14 @@ export function CartProvider({ children }) {
     // Clear from storage
     if (currentUserId) {
       try {
-        await fetch(`${API_BASE_URL}/api/cart/${currentUserId}`, { method: 'DELETE' });
+        if (firebaseToken) {
+          await fetch(`${API_BASE_URL}/api/cart/${currentUserId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${firebaseToken}`,
+            },
+          });
+        }
       } catch (error) {
         console.error('Error clearing server cart:', error);
       }

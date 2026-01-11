@@ -4,9 +4,8 @@ import GradientText from './GradientText.jsx';
 import GooeyNav from './GooeyNav.jsx';
 import './Navbar.css';
 import { useState, useEffect, useRef } from 'react';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
 import { FaBell } from 'react-icons/fa';
 
 function Navbar({ isAuthenticated, onSignOut, user }) {
@@ -36,30 +35,17 @@ function Navbar({ isAuthenticated, onSignOut, user }) {
       return;
     }
 
-    // Wait for auth state to be ready
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      if (!currentUser) {
-        setHasUnreadNotifications(false);
-        return;
-      }
+    // Global notifications feed: unread = any notification with read == false
+    const notificationsRef = collection(db, 'notifications');
+    const q = query(notificationsRef, where('read', '==', false));
 
-      const notificationsRef = collection(db, 'notifications');
-      const q = query(
-        notificationsRef, 
-        where('userId', '==', currentUser.uid),
-        where('read', '==', false)
-      );
-
-      const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
-        setHasUnreadNotifications(!snapshot.empty);
-      }, (error) => {
-        console.error('Error listening to notifications:', error);
-      });
-
-      return () => unsubscribeSnapshot();
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setHasUnreadNotifications(!snapshot.empty);
+    }, (error) => {
+      console.error('Error listening to notifications:', error);
     });
 
-    return () => unsubscribeAuth();
+    return () => unsubscribe();
   }, [isAuthenticated]);
 
   // Define items based on authentication status

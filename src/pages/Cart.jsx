@@ -94,13 +94,17 @@ function Cart() {
                   <div className="product-details">
                     <div className="product-image-wrapper">
                       <img
-                        src={item.image || "https://placehold.co/80x80?text=No+Image"}
-                        alt={item.title}
-                        className="product-thumbnail"
+                        src={item.image || item.thumbnail || (item.images && item.images[0]) || "https://placehold.co/100x100?text=No+Image"}
+                        alt={item.title || "Product"}
+                        className="product-image"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://placehold.co/100x100?text=No+Image";
+                        }}
                       />
                     </div>
                     <div className="product-info">
-                      <h3 className="product-name">{item.title.substring(0, 20) + "..."}</h3>
+                      <h3 className="product-name">{item.title?.substring(0, 20) || "Product"}...</h3>
                       <p className="product-subtitle">{item.category || "General"}</p>
                       <button
                         className="remove-btn"
@@ -108,7 +112,7 @@ function Cart() {
                         aria-label="Remove item"
                       >
                         <span className="remove-icon">🗑️</span>
-                        Remove
+                        
                       </button>
                     </div>
                   </div>

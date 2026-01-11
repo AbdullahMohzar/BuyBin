@@ -164,12 +164,12 @@ function OrderHistory() {
                     <span className="total-amount">£{order.total?.toFixed(2) || '0.00'}</span>
                   </div>
                   <div className="order-actions">
-                    <button 
+                    {/* <button 
                       className="view-details-btn"
                       onClick={() => navigate(`/OrderDetails/${order.id}`)}
                     >
                       View Details
-                    </button>
+                    </button> */}
                     {order.status === 'delivered' && (
                       <button className="reorder-btn" onClick={() => navigate('/Products')}>
                         Reorder

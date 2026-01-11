@@ -4,7 +4,7 @@ import { mockApi } from './mockApi.js';
 import { CartContext } from '../Context/CartContext';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp, orderBy, updateDoc, getDoc } from 'firebase/firestore';
 import './ProductDetails.css';
 
 function ProductDetails() {
@@ -15,6 +15,13 @@ function ProductDetails() {
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [reviews, setReviews] = useState([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+  const [userHasReviewed, setUserHasReviewed] = useState(false);
+  const [userReviewId, setUserReviewId] = useState(null);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [quantity, setQuantity] = useState(1);
   const [showNotification, setShowNotification] = useState(false);
@@ -25,6 +32,84 @@ function ProductDetails() {
   const navigate = useNavigate();
   const fallbackImage = 'https://placehold.co/400x400?text=Product+Image';
   const relatedListRef = useRef(null);
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Load reviews from Firestore
+  useEffect(() => {
+    if (!id) return;
+
+    const loadReviews = async () => {
+      try {
+        const reviewsRef = collection(db, 'reviews');
+        
+        // First try with ordering (requires composite index)
+        let snapshot;
+        try {
+          const q = query(
+            reviewsRef,
+            where('productId', '==', String(id)),
+            orderBy('createdAt', 'desc')
+          );
+          snapshot = await getDocs(q);
+        } catch (indexError) {
+          // If index doesn't exist, fall back to simple query without ordering
+          console.warn('Composite index not ready, using simple query:', indexError.message);
+          const simpleQuery = query(
+            reviewsRef,
+            where('productId', '==', String(id))
+          );
+          snapshot = await getDocs(simpleQuery);
+        }
+        
+        let reviewsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate() || new Date(),
+        }));
+        
+        // Sort by createdAt if we used the simple query
+        reviewsData.sort((a, b) => b.createdAt - a.createdAt);
+        
+        setReviews(reviewsData);
+        
+        // Calculate average rating
+        if (reviewsData.length > 0) {
+          const totalRating = reviewsData.reduce((sum, review) => sum + review.rating, 0);
+          setAverageRating(totalRating / reviewsData.length);
+          setReviewCount(reviewsData.length);
+        } else {
+          setAverageRating(0);
+          setReviewCount(0);
+        }
+
+        // Check if current user has already reviewed
+        if (currentUser) {
+          const userReview = reviewsData.find(review => review.userId === currentUser.uid);
+          if (userReview) {
+            setUserHasReviewed(true);
+            setUserReviewId(userReview.id);
+            setUserRating(userReview.rating);
+            setComment(userReview.comment || '');
+          } else {
+            setUserHasReviewed(false);
+            setUserReviewId(null);
+            setUserRating(0);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading reviews:', error);
+      }
+    };
+
+    loadReviews();
+  }, [id, currentUser]);
 
   // Check if product is in wishlist - with auth state listener
   useEffect(() => {
@@ -125,7 +210,6 @@ function ProductDetails() {
     
     if (!user) {
       showNotificationWithMessage('Please sign in to add to wishlist');
-      setTimeout(() => navigate('/Login'), 1500);
       return;
     }
 
@@ -183,14 +267,155 @@ function ProductDetails() {
 
   const handleRatingClick = (rating) => {
     if (!product) return;
+    if (!currentUser) {
+      showNotificationWithMessage('Please sign in to rate this product');
+      return;
+    }
     setUserRating(rating);
   };
 
+  // Submit review to Firestore
+  const handleReviewSubmit = async () => {
+    if (!product || !currentUser) {
+      showNotificationWithMessage('Please sign in to submit a review');
+      return;
+    }
+
+    if (userRating === 0) {
+      showNotificationWithMessage('Please select a rating');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+
+    try {
+      const reviewData = {
+        productId: String(product.id),
+        userId: currentUser.uid,
+        userName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonymous',
+        userEmail: currentUser.email,
+        rating: userRating,
+        comment: comment.trim(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      if (userHasReviewed && userReviewId) {
+        // Update existing review
+        await updateDoc(doc(db, 'reviews', userReviewId), {
+          rating: userRating,
+          comment: comment.trim(),
+          updatedAt: serverTimestamp(),
+        });
+        showNotificationWithMessage('Review updated successfully! ⭐');
+      } else {
+        // Add new review
+        const docRef = await addDoc(collection(db, 'reviews'), reviewData);
+        setUserReviewId(docRef.id);
+        setUserHasReviewed(true);
+        showNotificationWithMessage('Review submitted successfully! ⭐');
+      }
+
+      // Refresh reviews with fallback for missing index
+      const reviewsRef = collection(db, 'reviews');
+      let snapshot;
+      try {
+        const q = query(
+          reviewsRef,
+          where('productId', '==', String(product.id)),
+          orderBy('createdAt', 'desc')
+        );
+        snapshot = await getDocs(q);
+      } catch (indexError) {
+        const simpleQuery = query(
+          reviewsRef,
+          where('productId', '==', String(product.id))
+        );
+        snapshot = await getDocs(simpleQuery);
+      }
+      
+      let reviewsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+      }));
+      
+      reviewsData.sort((a, b) => b.createdAt - a.createdAt);
+      setReviews(reviewsData);
+      
+      // Update average rating
+      if (reviewsData.length > 0) {
+        const totalRating = reviewsData.reduce((sum, review) => sum + review.rating, 0);
+        setAverageRating(totalRating / reviewsData.length);
+        setReviewCount(reviewsData.length);
+      }
+
+      setComment('');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      showNotificationWithMessage('Error submitting review. Please try again.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  // Delete user's review
+  const handleDeleteReview = async () => {
+    if (!userReviewId) return;
+
+    try {
+      await deleteDoc(doc(db, 'reviews', userReviewId));
+      setUserHasReviewed(false);
+      setUserReviewId(null);
+      setUserRating(0);
+      setComment('');
+      
+      // Refresh reviews with fallback for missing index
+      const reviewsRef = collection(db, 'reviews');
+      let snapshot;
+      try {
+        const q = query(
+          reviewsRef,
+          where('productId', '==', String(product.id)),
+          orderBy('createdAt', 'desc')
+        );
+        snapshot = await getDocs(q);
+      } catch (indexError) {
+        const simpleQuery = query(
+          reviewsRef,
+          where('productId', '==', String(product.id))
+        );
+        snapshot = await getDocs(simpleQuery);
+      }
+      
+      let reviewsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+      }));
+      
+      reviewsData.sort((a, b) => b.createdAt - a.createdAt);
+      setReviews(reviewsData);
+      
+      // Update average rating
+      if (reviewsData.length > 0) {
+        const totalRating = reviewsData.reduce((sum, review) => sum + review.rating, 0);
+        setAverageRating(totalRating / reviewsData.length);
+        setReviewCount(reviewsData.length);
+      } else {
+        setAverageRating(0);
+        setReviewCount(0);
+      }
+
+      showNotificationWithMessage('Review deleted');
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      showNotificationWithMessage('Error deleting review');
+    }
+  };
+
   const handleCommentSubmit = () => {
-    if (!product || !comment.trim()) return;
-    const updatedComments = [...(product.comments || []), comment];
-    setProduct((prev) => ({ ...prev, comments: updatedComments }));
-    setComment('');
+    handleReviewSubmit();
   };
 
   const scrollRelated = (direction) => {
@@ -253,20 +478,17 @@ function ProductDetails() {
 
               <div className="product-rating">
                 <span>Rating: </span>
-                <div className="star-rating">
+                <div className="star-rating display-only">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <span
                       key={star}
-                      className={`star ${star <= (hoverRating || userRating || product.rating.rate) ? 'filled' : ''}`}
-                      onClick={() => handleRatingClick(star)}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
+                      className={`star ${star <= Math.round(averageRating) ? 'filled' : ''}`}
                     >
                       ★
                     </span>
                   ))}
                 </div>
-                <span>({product.rating.rate} from {product.rating.count} reviews)</span>
+                <span>({averageRating.toFixed(1)} from {reviewCount} reviews)</span>
               </div>
 
               <div className="product-actions">
@@ -325,21 +547,135 @@ function ProductDetails() {
         )}
 
         {activeTab === "reviews" && (
-          <div className="tab-content">
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Add your review..."
-              className="comment-input"
-            />
-            <button className="submit-comment-btn" onClick={handleCommentSubmit} disabled={!comment.trim()}>
-              Submit Review
-            </button>
-            <ul className="comments-list">
-              {product.comments.map((c, index) => (
-                <li key={index} className="comment-item">{c}</li>
-              ))}
-            </ul>
+          <div className="tab-content reviews-tab">
+            {/* Write Review Section */}
+            <div className="write-review-section">
+              <h3>{userHasReviewed ? 'Update Your Review' : 'Write a Review'}</h3>
+              
+              {!currentUser ? (
+                <p className="login-prompt">
+                  Please <Link to="/Login">sign in</Link> to leave a review.
+                </p>
+              ) : (
+                <>
+                  <div className="rating-input">
+                    <span>Your Rating: </span>
+                    <div className="star-rating interactive">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span
+                          key={star}
+                          className={`star ${star <= (hoverRating || userRating) ? 'filled' : ''}`}
+                          onClick={() => handleRatingClick(star)}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    {userRating > 0 && <span className="rating-text">{userRating}/5</span>}
+                  </div>
+                  
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Share your experience with this product... (optional)"
+                    className="comment-input"
+                    rows={4}
+                  />
+                  
+                  <div className="review-actions">
+                    <button 
+                      className="submit-comment-btn" 
+                      onClick={handleReviewSubmit} 
+                      disabled={userRating === 0 || isSubmittingReview}
+                    >
+                      {isSubmittingReview ? 'Submitting...' : (userHasReviewed ? 'Update Review' : 'Submit Review')}
+                    </button>
+                    
+                    {userHasReviewed && (
+                      <button 
+                        className="delete-review-btn" 
+                        onClick={handleDeleteReview}
+                      >
+                        Delete Review
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Reviews List */}
+            <div className="reviews-list-section">
+              <h3>Customer Reviews ({reviewCount})</h3>
+              
+              {/* Rating Summary */}
+              {reviewCount > 0 && (
+                <div className="rating-summary">
+                  <div className="average-rating-display">
+                    <span className="big-rating">{averageRating.toFixed(1)}</span>
+                    <div className="rating-details">
+                      <div className="star-rating display-only">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <span
+                            key={star}
+                            className={`star ${star <= Math.round(averageRating) ? 'filled' : ''}`}
+                          >
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <span>Based on {reviewCount} review{reviewCount !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {reviews.length === 0 ? (
+                <p className="no-reviews">No reviews yet. Be the first to review this product!</p>
+              ) : (
+                <ul className="reviews-list">
+                  {reviews.map((review) => (
+                    <li key={review.id} className="review-item">
+                      <div className="review-header">
+                        <div className="reviewer-info">
+                          <span className="reviewer-avatar">
+                            {review.userName?.charAt(0).toUpperCase() || '?'}
+                          </span>
+                          <div className="reviewer-details">
+                            <span className="reviewer-name">{review.userName}</span>
+                            <span className="review-date">
+                              {review.createdAt.toLocaleDateString('en-GB', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="review-rating">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              className={`star small ${star <= review.rating ? 'filled' : ''}`}
+                            >
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      {review.comment && (
+                        <p className="review-comment">{review.comment}</p>
+                      )}
+                      {review.userId === currentUser?.uid && (
+                        <span className="your-review-badge">Your Review</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
 

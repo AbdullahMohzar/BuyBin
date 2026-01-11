@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, auth } from '../firebase';
-import { collection, query, orderBy, where, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { db } from '../firebase';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { FaBell, FaTag, FaTrash, FaCheck, FaShoppingBag } from 'react-icons/fa';
 import './NotificationsTab.css';
 
@@ -13,42 +12,25 @@ function NotificationsTab() {
 
   // Fetch notifications from Firestore
   useEffect(() => {
-    let unsubscribeSnapshot = null;
+    const notificationsRef = collection(db, 'notifications');
+    const q = query(notificationsRef, orderBy('createdAt', 'desc'));
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      if (!currentUser) {
-        setNotifications([]);
-        setLoading(false);
-        return;
-      }
-
-      const notificationsRef = collection(db, 'notifications');
-      const q = query(
-        notificationsRef, 
-        where('userId', '==', currentUser.uid),
-        orderBy('createdAt', 'desc')
-      );
-
-      unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
-        const notificationsList = [];
-        snapshot.forEach((doc) => {
-          notificationsList.push({
-            id: doc.id,
-            ...doc.data(),
-          });
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const notificationsList = [];
+      snapshot.forEach((doc) => {
+        notificationsList.push({
+          id: doc.id,
+          ...doc.data(),
         });
-        setNotifications(notificationsList);
-        setLoading(false);
-      }, (error) => {
-        console.error('Error fetching notifications:', error);
-        setLoading(false);
       });
+      setNotifications(notificationsList);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching notifications:', error);
+      setLoading(false);
     });
 
-    return () => {
-      unsubscribeAuth();
-      if (unsubscribeSnapshot) unsubscribeSnapshot();
-    };
+    return () => unsubscribe();
   }, []);
 
   // Calculate relative time (e.g., "2 hours ago")

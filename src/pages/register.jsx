@@ -52,7 +52,8 @@ function Register() {
 
   const validateForm = () => {
     const newErrors = [];
-    if (!email.includes('@') || !email.endsWith('.com')) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       newErrors.push('Please enter a valid email address');
     }
     if (!/^\+?[1-9]\d{9,14}$/.test(mobile)) {

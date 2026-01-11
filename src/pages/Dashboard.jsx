@@ -4,7 +4,7 @@ import { mockApi } from './mockApi';
 import './Dashboard.css';
 import GlitchText from '../Components/GlitchText.jsx';
 import { CartContext } from '../Context/CartContext';
-import { FaShoppingCart, FaFire, FaStar, FaArrowRight, FaCrown, FaBolt, FaGift } from 'react-icons/fa';
+import { FaShoppingCart, FaFire, FaStar, FaArrowRight, FaCrown, FaBolt } from 'react-icons/fa';
 
 // Shuffle array function
 const shuffleArray = (array) => {
@@ -20,14 +20,6 @@ const categories = shuffleArray([
   { name: 'Laptop', icon: '💻', color: '#8B5CF6' },
 ]);
 
-// Stats data
-const stats = [
-  { label: 'Products Available', value: '10,000+', icon: '📦', color: '#3B82F6' },
-  { label: 'Happy Customers', value: '50K+', icon: '😊', color: '#10B981' },
-  { label: 'Orders Delivered', value: '75K+', icon: '🚚', color: '#F59E0B' },
-  { label: 'Categories', value: '100+', icon: '🎯', color: '#EF4444' },
-];
-
 function Dashboard() {
   const { cartItems } = useContext(CartContext);
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -42,9 +34,16 @@ function Dashboard() {
       try {
         setLoading(true);
         const allProducts = await mockApi.getProducts();
-        const randomProducts = shuffleArray(allProducts);
+        // Transform products to ensure price fields are properly set
+        const transformedProducts = allProducts.map(product => ({
+          ...product,
+          price: Number(product.currentPrice || product.price || 0),
+          currentPrice: Number(product.currentPrice || product.price || 0),
+          originalPrice: Number(product.originalPrice || product.price || 0),
+        }));
+        const randomProducts = shuffleArray(transformedProducts);
         setFeaturedProducts(randomProducts);
-        setTrendingProducts(shuffleArray(allProducts).slice(0, 4));
+        setTrendingProducts(shuffleArray(transformedProducts).slice(0, 4));
       } catch (error) {
         console.error('Error loading products:', error);
       } finally {
@@ -115,16 +114,6 @@ const handleCategoryClick = (category) => {
               </button>
             </div>
           </div>
-          <div className="hero-visual">
-            <div className="floating-card">
-              <FaCrown className="crown-icon" />
-              <span>Premium Quality</span>
-            </div>
-            <div className="floating-card card-2">
-              <FaGift className="gift-icon" />
-              <span>Best Offers</span>
-            </div>
-          </div>
         </div>
         
         {/* Search Bar */}
@@ -143,21 +132,6 @@ const handleCategoryClick = (category) => {
               </svg>
             </button>
           </form>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="stats-section">
-        <div className="stats-grid">
-          {stats.map((stat, index) => (
-            <div key={index} className="stat-card" style={{ '--accent-color': stat.color }}>
-              <div className="stat-icon">{stat.icon}</div>
-              <div className="stat-content">
-                <div className="stat-value">{stat.value}</div>
-                <div className="stat-label">{stat.label}</div>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -213,7 +187,7 @@ const handleCategoryClick = (category) => {
               </div>
               <div className="trending-info">
                 <h3 className="trending-title">{product.title}</h3>
-                <div className="trending-price">${product.price?.toFixed(2)}</div>
+                <div className="trending-price">£{product.price?.toFixed(2)}</div>
                 <div className="trending-rating">
                   <FaStar className="star-icon" />
                   <span>4.{Math.floor(Math.random() * 9) + 1}</span>
@@ -242,7 +216,7 @@ const handleCategoryClick = (category) => {
                 <div className="product-image-placeholder">Loading...</div>
                 <div className="product-info">
                   <h3 className="product-name">Loading</h3>
-                  <p className="product-price">$0.00</p>
+                  <p className="product-price">£0.00</p>
                 </div>
               </div>
             ))
@@ -269,7 +243,7 @@ const handleCategoryClick = (category) => {
                     <FaStar className="star-icon" />
                     <span>4.{Math.floor(Math.random() * 9) + 1}</span>
                   </div>
-                  <p className="product-price">${product.price?.toFixed(2) || '0.00'}</p>
+                  <p className="product-price">£{product.price.toFixed(2)}</p>
                 </div>
               </div>
             ))
@@ -282,105 +256,6 @@ const handleCategoryClick = (category) => {
           </button>
         )}
       </section>
-
-      {/* Newsletter Section */}
-      <section className="newsletter-section">
-        <div className="newsletter-content">
-          <div className="newsletter-text">
-            <h2>Stay in the Loop!</h2>
-            <p>Subscribe to get special offers, free giveaways, and once-in-a-lifetime deals.</p>
-          </div>
-          <div className="newsletter-form">
-            <input type="email" placeholder="Enter your email" className="newsletter-input" />
-            <button className="newsletter-btn">Subscribe</button>
-          </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section className="about-section">
-        <div className="about-content">
-          <div className="about-text">
-            <h2>About BuyBin</h2>
-            <p>
-              At BuyBin, we're passionate about bringing you the latest and greatest products at unbeatable prices. 
-              Our mission is to make online shopping simple, secure, and enjoyable for everyone.
-            </p>
-            <div className="about-features">
-              <div className="feature">
-                <div className="feature-icon">🚚</div>
-                <div>
-                  <h4>Free Shipping</h4>
-                  <p>On orders over $50</p>
-                </div>
-              </div>
-              <div className="feature">
-                <div className="feature-icon">🔒</div>
-                <div>
-                  <h4>Secure Payment</h4>
-                  <p>100% protected transactions</p>
-                </div>
-              </div>
-              <div className="feature">
-                <div className="feature-icon">↩️</div>
-                <div>
-                  <h4>Easy Returns</h4>
-                  <p>30-day return policy</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="about-image">
-            <div className="founder-card">
-              <div className="founder-avatar">
-                <img src="src/assets/pf3.png" alt="Abdullah Mohzar" />
-              </div>
-              <div className="founder-info">
-                <h3>Abdullah Mohzar</h3>
-                <p>Founder & CEO</p>
-                <p className="founder-quote">"Building the future of e-commerce"</p>
-                <button className="contact-btn" onClick={() => console.log('Contact clicked')}>
-                  Get in Touch
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="dashboard-footer">
-        <div className="footer-content">
-          <div className="footer-section">
-            <h3>BuyBin</h3>
-            <p>Your ultimate shopping destination for quality products at amazing prices.</p>
-          </div>
-          <div className="footer-section">
-            <h4>Quick Links</h4>
-            <Link to="/Products">All Products</Link>
-            <Link to="/Categories">Categories</Link>
-            <Link to="/Deals">Special Deals</Link>
-          </div>
-          <div className="footer-section">
-            <h4>Customer Service</h4>
-            <Link to="/Help">Help Center</Link>
-            <Link to="/Returns">Returns</Link>
-            <Link to="/Contact">Contact Us</Link>
-          </div>
-          <div className="footer-section">
-            <h4>Follow Us</h4>
-            <div className="social-links">
-              <a href="#" aria-label="Facebook">📘</a>
-              <a href="#" aria-label="Twitter">🐦</a>
-              <a href="#" aria-label="Instagram">📷</a>
-              <a href="#" aria-label="LinkedIn">💼</a>
-            </div>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} BuyBin. All rights reserved.</p>
-        </div>
-      </footer>
 
       {/* Floating Cart */}
       {totalItems > 0 && (

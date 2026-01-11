@@ -5,6 +5,8 @@ import { auth, db } from '../firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import './Checkout.css';
 
+const API_BASE_URL = 'http://localhost:5000';
+
 function Checkout() {
   const { cartItems, clearCart, discount, shippingCost } = useContext(CartContext);
   const navigate = useNavigate();
@@ -103,7 +105,38 @@ function Checkout() {
     setProcessing(true);
 
     try {
-      // Create order in Firestore
+      // Get Firebase ID token for API authorization
+      const token = await user.getIdToken();
+      
+      // Step 1: Validate stock before processing
+      const stockValidation = await fetch(`${API_BASE_URL}/api/purchase/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items: cartItems.map(item => ({
+            productId: item.id,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+
+      const stockResult = await stockValidation.json();
+      
+      if (!stockResult.success) {
+        // Stock validation failed - show errors
+        const errorMessages = stockResult.errors?.map(err => 
+          `${err.title || `Product ${err.productId}`}: Requested ${err.requested}, only ${err.available} available`
+        ).join('\n');
+        
+        alert(`❌ Stock validation failed:\n${errorMessages}`);
+        setProcessing(false);
+        return;
+      }
+
+      // Step 2: Create order in Firestore
       const orderData = {
         userId: user.uid,
         userEmail: user.email,
@@ -131,6 +164,30 @@ function Checkout() {
       };
 
       const orderRef = await addDoc(collection(db, 'orders'), orderData);
+      
+      // Step 3: Decrement stock after order is created
+      const purchaseComplete = await fetch(`${API_BASE_URL}/api/purchase/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items: cartItems.map(item => ({
+            productId: item.id,
+            quantity: item.quantity,
+          })),
+          orderId: orderRef.id,
+        }),
+      });
+
+      const purchaseResult = await purchaseComplete.json();
+      
+      if (!purchaseResult.success) {
+        console.error('Stock decrement failed:', purchaseResult);
+        // Order was created but stock wasn't decremented - log for manual fix
+        console.error('⚠️ Order created but stock not decremented. Order ID:', orderRef.id);
+      }
       
       console.log('Order created with ID:', orderRef.id);
       

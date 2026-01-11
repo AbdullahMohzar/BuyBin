@@ -35,7 +35,14 @@ function AlibabaLayout() {
       try {
         setLoading(true);
         const allProducts = await mockApi.getProducts();
-        const randomProducts = shuffleArray(allProducts);
+        // Transform products to ensure price fields are properly set
+        const transformedProducts = allProducts.map(product => ({
+          ...product,
+          price: Number(product.currentPrice || product.price || 0),
+          currentPrice: Number(product.currentPrice || product.price || 0),
+          originalPrice: Number(product.originalPrice || product.price || 0),
+        }));
+        const randomProducts = shuffleArray(transformedProducts);
         setFeaturedProducts(randomProducts);
       } catch (error) {
         console.error('Error loading products:', error);
@@ -150,7 +157,7 @@ function AlibabaLayout() {
               <div key={i} className="product-card">
                 <div className="product-image-placeholder">Loading...</div>
                 <h3 className="product-name">Loading</h3>
-                <p className="product-price">$0.00</p>
+                <p className="product-price">£0.00</p>
               </div>
             ))
           ) : (
@@ -160,7 +167,11 @@ function AlibabaLayout() {
                   {product.image ? <img src={product.image} alt={product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : 'Product Image'}
                 </div>
                 <h3 className="product-name">{product.title}</h3>
-                <p className="product-price">${product.price?.toFixed(2) || '0.00'}</p>
+                <div className="product-rating">
+                  <span className="star">★</span>
+                  <span>{product.rating?.rate || (Math.random() * 2 + 3).toFixed(1)}</span>
+                </div>
+                <p className="product-price">£{product.price.toFixed(2)}</p>
               </div>
             ))
           )}

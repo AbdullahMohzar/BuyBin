@@ -20,14 +20,9 @@ import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
 function App() {
-  const [showSignInPopup, setShowSignInPopup] = useState(false);
-  const [redirectTimeLeft, setRedirectTimeLeft] = useState(5);
-  const [dismissCount, setDismissCount] = useState(0);
-  const [isDismissed, setIsDismissed] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
-  const maxDismissals = 3;
 
   // Normalize Firebase user
   useEffect(() => {
@@ -56,45 +51,6 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Show sign-in popup after 15 seconds if not authenticated
-  useEffect(() => {
-    let initialTimer;
-    if (!isAuthenticated && (!isDismissed || dismissCount >= maxDismissals)) {
-      initialTimer = setTimeout(() => {
-        setShowSignInPopup(true);
-      }, 15000);
-    }
-    return () => clearTimeout(initialTimer);
-  }, [isAuthenticated, isDismissed, dismissCount]);
-
-  // Handle popup redirect countdown
-  useEffect(() => {
-    let redirectTimer;
-    if (showSignInPopup && redirectTimeLeft > 0) {
-      redirectTimer = setInterval(() => {
-        setRedirectTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (showSignInPopup && redirectTimeLeft === 0) {
-      navigate('/Login');
-    }
-    return () => clearInterval(redirectTimer);
-  }, [showSignInPopup, redirectTimeLeft, navigate]);
-
-  const handleDismissPopup = () => {
-    if (dismissCount < maxDismissals - 1) {
-      setShowSignInPopup(false);
-      setRedirectTimeLeft(5);
-      setIsDismissed(true);
-      setDismissCount((prev) => prev + 1);
-      setTimeout(() => {
-        setIsDismissed(false);
-        setShowSignInPopup(true);
-      }, 60000); // 1 min before showing popup again
-    } else {
-      navigate('/Login');
-    }
-  };
-
   const handleSignOut = () => {
     auth.signOut()
       .then(() => {
@@ -108,7 +64,6 @@ function App() {
   const handleSignIn = (token) => {
     localStorage.setItem('token', token);
     setIsAuthenticated(true);
-    setShowSignInPopup(false);
     navigate('/');
   };
 
@@ -120,22 +75,6 @@ function App() {
           onSignOut={handleSignOut}
           user={user}
         />
-
-        {showSignInPopup && !isAuthenticated && (
-          <div className="sign-in-popup-overlay" onClick={handleDismissPopup}>
-            <div className="sign-in-popup" onClick={(e) => e.stopPropagation()}>
-              <p>
-                Please sign in to continue. You will be redirected in {redirectTimeLeft} seconds.
-              </p>
-              <button onClick={handleDismissPopup}>Dismiss</button>
-              {dismissCount > 0 && (
-                <p>
-                  Dismissed {dismissCount} times. {maxDismissals - dismissCount} dismissals left.
-                </p>
-              )}
-            </div>
-          </div>
-        )}
 
         <ErrorBoundary>
           <Routes>

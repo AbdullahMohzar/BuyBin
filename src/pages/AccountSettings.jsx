@@ -252,9 +252,11 @@ function AccountSettings() {
                 className="profile-photo"
               />
               <div className="photo-actions">
+                <span className="photo-actions-label">Profile Photo</span>
+                <span className="photo-actions-hint">Enter a URL for your profile picture</span>
                 <input
                   type="text"
-                  placeholder="Enter photo URL"
+                  placeholder="https://example.com/photo.jpg"
                   value={profile.photoURL}
                   onChange={(e) => setProfile({ ...profile, photoURL: e.target.value })}
                   className="photo-url-input"
